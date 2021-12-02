@@ -27,7 +27,7 @@ std::vector<int> pattern_to_byte( const char* pattern )
     return bytes;
 }
 
-std::uintptr_t find_pattern( const uint8_t* start_data, const std::size_t image_size, const char* pattern )
+std::uintptr_t find_pattern( const std::uint8_t* start_data, const std::size_t image_size, const char* pattern )
 {
     const auto pattern_bytes = pattern_to_byte( pattern );
     const auto signature_size = pattern_bytes.size();
@@ -80,11 +80,15 @@ int main()
     {
         if ( const auto pe_header = reinterpret_cast<PIMAGE_NT_HEADERS>( reinterpret_cast<std::uint8_t*>( dos_header ) + dos_header->e_lfanew ); pe_header->Signature == IMAGE_NT_SIGNATURE )
         {
-            std::cout << "Image base: 0x" << std::uppercase << std::hex << pe_header->OptionalHeader.ImageBase << std::dec << std::endl;
-            std::cout << "Image size: " << pe_header->OptionalHeader.SizeOfImage << std::endl;
-            const auto offset = find_pattern( static_cast<std::uint8_t*>( file_base ), pe_header->OptionalHeader.SizeOfImage, "pattern goes brrrr" );
+            const auto image_base = pe_header->OptionalHeader.ImageBase;
+            const auto image_size = pe_header->OptionalHeader.SizeOfImage;
+            const auto header_size = pe_header->OptionalHeader.SizeOfHeaders;
+            const auto code_base = pe_header->OptionalHeader.BaseOfCode;
+            std::cout << "Image base: 0x" << std::uppercase << std::hex << image_base << std::dec << std::endl;
+            std::cout << "Image size: " << image_size << std::endl;
+            const auto offset = find_pattern( static_cast<uint8_t*>( file_base ), image_size, "pattern goes brrrr" ) + code_base - header_size;
             std::cout << "offset: 0x" << std::uppercase << std::hex << offset << std::dec << std::endl;
-            std::cout << "address: 0x" << std::uppercase << std::hex << pe_header->OptionalHeader.ImageBase + offset << std::dec << std::endl;
+            std::cout << "address: 0x" << std::uppercase << std::hex << image_base + offset << std::dec << std::endl;
         }
     } else
     {
